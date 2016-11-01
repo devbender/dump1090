@@ -66,6 +66,10 @@ void modesInitConfig(void) {
     memset(&Modes, 0, sizeof(Modes));
 
     // Now initialise things that should not be 0/NULL to their defaults
+	Modes.serial                  = 0;
+	Modes.serialPort              = "/dev/ttyS0";
+	Modes.serialBaud              = 115200;
+	Modes.serialFormat			  = 0;
     Modes.gain                    = MODES_MAX_GAIN;
     Modes.freq                    = MODES_DEFAULT_FREQ;
     Modes.ppm_error               = MODES_DEFAULT_PPM;
@@ -436,6 +440,9 @@ void showHelp(void) {
 "--debug <flags>          Debug mode (verbose), see README for details\n"
 "--quiet                  Disable output to stdout. Use for daemon applications\n"
 "--ppm <error>            Set receiver error in parts per million (default 0)\n"
+"--serial-port <port>     Output to Serial Port (default: /dev/ttyAMA0)\n"
+"--serial-baud <baud>     Serial Port Baud (default: 115200)\n"
+"--serial-format <0:1>    Serial Output Format 0:Simple  1:Mavlink (default: Simple)\n"
 "--help                   Show this help\n"
 "\n"
 "Debug mode flags: d = Log frames decoded with errors\n"
@@ -700,6 +707,17 @@ int main(int argc, char **argv) {
         } else if (!strcmp(argv[j],"--net-only")) {
             Modes.net = 1;
             Modes.net_only = 1;
+//===========================================================================
+		} else if (!strcmp(argv[j],"--serial-port") && more) {
+            Modes.serial = 1;
+			Modes.serialPort = strdup(argv[++j]);
+		} else if (!strcmp(argv[j],"--serial-baud") && more) {
+            Modes.serial = 1;
+			Modes.serialBaud = atoi(argv[++j]);
+		} else if (!strcmp(argv[j],"--serial-format") && more) {
+            Modes.serial = 1;
+			Modes.serialFormat = atoi(argv[++j]);
+//===========================================================================
        } else if (!strcmp(argv[j],"--net-heartbeat") && more) {
             Modes.net_heartbeat_rate = atoi(argv[++j]) * 15;
        } else if (!strcmp(argv[j],"--net-ro-size") && more) {
@@ -819,6 +837,7 @@ int main(int argc, char **argv) {
         }
     }
     if (Modes.net) modesInitNet();
+	if (Modes.serial) modesInitSerial(Modes.serialPort, Modes.serialBaud, Modes.serialFormat);
 
     // If the user specifies --net-only, just run in order to serve network
     // clients without reading data from the RTL device

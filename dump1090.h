@@ -59,6 +59,10 @@
     #include <sys/ioctl.h>
     #include "rtl-sdr.h"
     #include "anet.h"
+	#include <termios.h>
+	#include <sys/types.h>
+	#include "mavlink_v1/common/mavlink.h"		// v1 for compatibility
+	//#include "mavlink_v2/common/mavlink.h" 
 #else
     #include "winstubs.h" //Put everything Windows specific in here
     #include "rtl-sdr.h"
@@ -259,6 +263,12 @@ struct {                             // Internal state
     uint16_t       *maglut;          // I/Q -> Magnitude lookup table
     int             exit;            // Exit from the main loop when true
 
+	// Serial
+	int			  serial;
+	int			  serialBaud;
+	char		  *serialPort;	
+	int			  serialFormat;
+	
     // RTLSDR
     int           dev_index;
     int           gain;
@@ -440,6 +450,8 @@ void computeMagnitudeVector(uint16_t *pData);
 int  decodeCPR          (struct aircraft *a, int fflag, int surface);
 int  decodeCPRrelative  (struct aircraft *a, int fflag, int surface);
 void modesInitErrorInfo ();
+void modesInitSerial(const char* port, int baud, int format);
+void modesSerial(struct modesMessage *mm, int SERIAL, int format);
 //
 // Functions exported from interactive.c
 //
