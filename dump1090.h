@@ -59,10 +59,9 @@
     #include <sys/ioctl.h>
     #include "rtl-sdr.h"
     #include "anet.h"
-	#include <termios.h>
-	#include <sys/types.h>
-	#include "mavlink_v1/common/mavlink.h"		// v1 for compatibility
-	//#include "mavlink_v2/common/mavlink.h" 
+    #include <termios.h>
+    #include <sys/types.h>
+    #include "mavlink_v1/common/mavlink.h"
 #else
     #include "winstubs.h" //Put everything Windows specific in here
     #include "rtl-sdr.h"
@@ -263,11 +262,11 @@ struct {                             // Internal state
     uint16_t       *maglut;          // I/Q -> Magnitude lookup table
     int             exit;            // Exit from the main loop when true
 
-	// Serial
-	int			  serial;
-	int			  serialBaud;
-	char		  *serialPort;	
-	int			  serialFormat;
+    // Serial
+    int			  serial;
+    int			  serialBaud;
+    char		  *serialPort;	
+    int			  serialFormat;
 	
     // RTLSDR
     int           dev_index;
