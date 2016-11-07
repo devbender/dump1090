@@ -61,8 +61,7 @@
     #include "rtl-sdr.h"
     #include "anet.h"
     #include <termios.h>
-    #include <sys/types.h>
-    #include "mavlink_v1/common/mavlink.h"
+    #include <sys/types.h>    
 #else
     #include "winstubs.h" //Put everything Windows specific in here
     #include "rtl-sdr.h"

@@ -54,12 +54,6 @@
 int SERIAL = 0;
 struct termios tios;
 
-mavlink_system_t mavlink_system;
-mavlink_adsb_vehicle_t mavlinkADSB;
-
-mavlink_message_t mavMSG;
-uint8_t mavBUF[MAVLINK_MAX_PACKET_LEN];
-
 uint32_t modes_checksum_table[112] = {
 0x3935ea, 0x1c9af5, 0xf1b77e, 0x78dbbf, 0xc397db, 0x9e31e9, 0xb0e2f0, 0x587178,
 0x2c38bc, 0x161c5e, 0x0b0e2f, 0xfa7d13, 0x82c48d, 0xbe9842, 0x5f4c21, 0xd05c14,
@@ -107,7 +101,7 @@ void modesInitSerial(const char* port, int baud, int format) {
 	}
 	tcsetattr(SERIAL, TCSAFLUSH, &tios);
 	printf("\n**** SERIAL OUTPUT ENABLED ****\n");	
-	printf("PORT: %s  BAUD: %i  FORMAT: %s\n", port, baud, format == 0 ? "Simple" : "Mavlink");
+	printf("PORT: %s  BAUD: %i  FORMAT: %s\n", port, baud, format == 0 ? "Simple" : "Raw");
 }
 
 void modesSerial(struct modesMessage *mm, int SERIAL, int format){
@@ -116,44 +110,9 @@ void modesSerial(struct modesMessage *mm, int SERIAL, int format){
 	char msg[64], *p = msg;
 	
 	//===================================================================
-	// 1:MAVLINK FORMAT
+	// 1:RAW FORMAT
 	//===================================================================
-	if(format == 1){
-		mavlink_system.sysid = 0;
-		mavlink_system.compid = MAV_COMP_ID_ADSB;
-		
-		mavlinkADSB.ICAO_address = mm->addr;
-		
-		if (mm->bFlags & MODES_ACFLAGS_CALLSIGN_VALID)			
-			strncpy(mavlinkADSB.callsign, mm->flight, sizeof(mavlinkADSB.callsign));
-		
-		if ((mm->bFlags & MODES_ACFLAGS_AOG_GROUND) == MODES_ACFLAGS_AOG_GROUND) {
-			mavlinkADSB.altitude = 0;
-		} else if (mm->bFlags & MODES_ACFLAGS_ALTITUDE_VALID) {
-			mavlinkADSB.altitude = mm->altitude;
-		}
-		
-		if (mm->bFlags & MODES_ACFLAGS_SPEED_VALID)
-			mavlinkADSB.hor_velocity = mm->velocity;
-			
-		if (mm->bFlags & MODES_ACFLAGS_HEADING_VALID)
-			mavlinkADSB.heading = mm->heading;
-		
-		if (mm->bFlags & MODES_ACFLAGS_LATLON_VALID){
-			mavlinkADSB.lat = mm->fLat;
-			mavlinkADSB.lon = mm->fLon;
-		}
-		
-		if (mm->bFlags & MODES_ACFLAGS_VERTRATE_VALID)
-			mavlinkADSB.ver_velocity = mm->vert_rate;
-		
-		if (mm->bFlags & MODES_ACFLAGS_SQUAWK_VALID)
-			mavlinkADSB.squawk = mm->modeA;
-		
-		mavlink_msg_adsb_vehicle_pack(mavlink_system.sysid, MAV_COMP_ID_ADSB, &mavMSG, mavlinkADSB.ICAO_address, mavlinkADSB.lat, mavlinkADSB.lon, ADSB_ALTITUDE_TYPE_PRESSURE_QNH,	mavlinkADSB.altitude, mavlinkADSB.heading, mavlinkADSB.hor_velocity, mavlinkADSB.ver_velocity, mavlinkADSB.callsign, ADSB_EMITTER_TYPE_NO_INFO, 0, 0, mavlinkADSB.squawk);
-		len = mavlink_msg_to_send_buffer(mavBUF, &mavMSG);
-		write(SERIAL, mavBUF, len);
-	}
+
 	
 	//===================================================================
 	// 0:SIMPLE FORMAT :: [MSGTYPE HEXID DATA]

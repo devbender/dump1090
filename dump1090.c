@@ -443,7 +443,7 @@ void showHelp(void) {
 "--ppm <error>            Set receiver error in parts per million (default 0)\n"
 "--serial-port <port>     Output to Serial Port (default: /dev/ttyS0)\n"
 "--serial-baud <baud>     Serial Port Baud (default: 115200)\n"
-"--serial-format <0:1>    Serial Output Format 0:Simple  1:Mavlink (default: Simple)\n"
+"--serial-format <0:1>    Serial Output Format 0:Simple  1:Raw (default: Simple)\n"
 "--help                   Show this help\n"
 "\n"
 "Debug mode flags: d = Log frames decoded with errors\n"
