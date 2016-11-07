@@ -440,7 +440,7 @@ void showHelp(void) {
 "--debug <flags>          Debug mode (verbose), see README for details\n"
 "--quiet                  Disable output to stdout. Use for daemon applications\n"
 "--ppm <error>            Set receiver error in parts per million (default 0)\n"
-"--serial-port <port>     Output to Serial Port (default: /dev/ttyAMA0)\n"
+"--serial-port <port>     Output to Serial Port (default: /dev/ttyS0)\n"
 "--serial-baud <baud>     Serial Port Baud (default: 115200)\n"
 "--serial-format <0:1>    Serial Output Format 0:Simple  1:Mavlink (default: Simple)\n"
 "--help                   Show this help\n"
