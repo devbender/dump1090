@@ -841,6 +841,7 @@ int main(int argc, char **argv) {
         }
     }
     if (Modes.net) modesInitNet();
+	//
     if (Modes.serial) modesInitSerial(Modes.serialPort, Modes.serialBaud, Modes.serialFormat);
 
     // If the user specifies --net-only, just run in order to serve network

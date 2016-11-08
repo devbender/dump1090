@@ -109,11 +109,10 @@ void modesSerial(struct modesMessage *mm, int format){
     int  msgLen = mm->msgbits / 8;
     int j;
 	
-	int msgType;
-	uint16_t len;
+	int msgType;	
 	char msg[64], *p = msg;
 	
-	int SERIAL = open(port, O_RDWR);
+	int SERIAL = open(Modes.serialPort, O_RDWR);
 	
 	//===================================================================
 	// 0:RAW FORMAT :: [*RAW_HEX;]
@@ -2068,7 +2067,7 @@ void useModesMessage(struct modesMessage *mm) {
         // In non-interactive non-quiet mode, display messages on standard output
         if (!Modes.interactive && !Modes.quiet) {
             displayModesMessage(mm);
-			modesSerial(mm, SERIAL, Modes.serialFormat);
+			modesSerial(mm, Modes.serialFormat);
         }
 
         // Feed output clients

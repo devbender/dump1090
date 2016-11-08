@@ -449,7 +449,7 @@ int  decodeCPR          (struct aircraft *a, int fflag, int surface);
 int  decodeCPRrelative  (struct aircraft *a, int fflag, int surface);
 void modesInitErrorInfo ();
 void modesInitSerial(const char* port, int baud, int format);
-void modesSerial(struct modesMessage *mm, int SERIAL, int format);
+void modesSerial(struct modesMessage *mm, int format);
 //
 // Functions exported from interactive.c
 //
