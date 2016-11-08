@@ -51,9 +51,6 @@
 // but a casual listener can't split the address from the checksum.
 //
 
-int SERIAL = 0;
-struct termios tios;
-
 uint32_t modes_checksum_table[112] = {
 0x3935ea, 0x1c9af5, 0xf1b77e, 0x78dbbf, 0xc397db, 0x9e31e9, 0xb0e2f0, 0x587178,
 0x2c38bc, 0x161c5e, 0x0b0e2f, 0xfa7d13, 0x82c48d, 0xbe9842, 0x5f4c21, 0xd05c14,
@@ -72,7 +69,10 @@ uint32_t modes_checksum_table[112] = {
 };
 
 void modesInitSerial(const char* port, int baud, int format) {		
-	SERIAL = open(port, O_RDWR);	
+	int SERIAL = 0;
+	struct termios tios;
+	
+	SERIAL = open(port, O_RDWR);
 	
 	if (SERIAL == -1){
 		perror("Error opening Serial Port! ");
@@ -101,23 +101,42 @@ void modesInitSerial(const char* port, int baud, int format) {
 	}
 	tcsetattr(SERIAL, TCSAFLUSH, &tios);
 	printf("\n**** SERIAL OUTPUT ENABLED ****\n");	
-	printf("PORT: %s  BAUD: %i  FORMAT: %s\n", port, baud, format == 0 ? "Simple" : "Raw");
+	printf("PORT: %s  BAUD: %i  FORMAT: %s\n", port, baud, format == 0 ? "Raw" : "Simple");
 }
 
-void modesSerial(struct modesMessage *mm, int SERIAL, int format){
+void modesSerial(struct modesMessage *mm, int format){
+	char *r = &Modes.rawOut[Modes.rawOutUsed];
+    int  msgLen = mm->msgbits / 8;
+    int j;
+	
 	int msgType;
 	uint16_t len;
 	char msg[64], *p = msg;
 	
-	//===================================================================
-	// 1:RAW FORMAT
-	//===================================================================
-
+	int SERIAL = open(port, O_RDWR);
 	
 	//===================================================================
-	// 0:SIMPLE FORMAT :: [MSGTYPE HEXID DATA]
+	// 0:RAW FORMAT :: [*RAW_HEX;]
 	//===================================================================
-	if(format == 0){		
+	if(format == 0){
+		*r++ = '*';
+
+		for (j = 0; j < msgLen; j++) {
+			sprintf(r, "%02X", mm->msg[j]);
+			r += 2;
+		}
+		*r++ = ';';
+		*r++ = '\n';
+		Modes.rawOutUsed += ((msgLen*2) + 3);
+		
+		write(SERIAL, Modes.rawOut, Modes.rawOutUsed);
+		close(SERIAL);
+	}
+	
+	//===================================================================
+	// 1:SIMPLE FORMAT :: [MSGTYPE_/t_HEXID_/t_DATA]
+	//===================================================================
+	if(format == 1){		
 		if((mm->msgtype ==  4) || (mm->msgtype == 20)) {
 			msgType = 5;
 		} else if ((mm->msgtype ==  5) || (mm->msgtype == 21)) {
@@ -177,6 +196,7 @@ void modesSerial(struct modesMessage *mm, int SERIAL, int format){
 		p += sprintf(p, "\r\n");
 		
 		write(SERIAL, msg, strlen(msg));
+		close(SERIAL);
 	}
 }
 
