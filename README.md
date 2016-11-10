@@ -53,6 +53,34 @@ In iteractive mode it is possible to have a less information dense but more
 all the recently seen aircrafts with some additional information such as
 altitude and flight number, extracted from the received Mode S packets.
 
+Serial output (NEW)
+---
+To enable serial output with default settings (port:/dev/ttyS0 baud:115200):
+
+    ./dump1090 --serial
+    
+To specify the serial port to use:
+
+    ./dump1090 --serial-port /dev/ttyAMA0
+	
+To specify serial port baud rate:
+
+    ./dump1090 --serial-baud 57600
+	
+To specify simple (decoded) serial output format:
+
+    ./dump1090 --serial-format 0
+	
+This will output decoded messages in tab separated values >> MSGID \t HEXID \t DECODED_DATA \n
+
+To specify hexadecimal serial output format:
+
+    ./dump1090 --serial-format 1
+
+To specify Mavlink protocol serial output format:
+
+    ./dump1090 --serial-format 3
+
 Using files as source of data
 ---
 

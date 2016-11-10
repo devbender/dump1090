@@ -106,8 +106,8 @@ void modesInitSerial(const char* port, int baud, int format) {
 
 void modesSerial(struct modesMessage *mm, int format){
 	char *r = &Modes.rawOut[Modes.rawOutUsed];
-    int  msgLen = mm->msgbits / 8;
-    int j;
+	int  msgLen = mm->msgbits / 8;
+	int j;
 	
 	int msgType;	
 	char msg[64], *p = msg;
