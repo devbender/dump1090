@@ -68,12 +68,12 @@ uint32_t modes_checksum_table[112] = {
 0x000000, 0x000000, 0x000000, 0x000000, 0x000000, 0x000000, 0x000000, 0x000000
 };
 
-void modesInitSerial(const char* port, int baud, int format) {		
+void modesInitSerial(const char* port, int baud, int format) {
 	int SERIAL = 0;
 	struct termios tios;
-	
+
 	SERIAL = open(port, O_RDWR);
-	
+
 	if (SERIAL == -1){
 		perror("Error opening Serial Port! ");
 		exit(1);
@@ -97,10 +97,10 @@ void modesInitSerial(const char* port, int baud, int format) {
 			break;
 		case 115200:
 			cfsetspeed(&tios, B115200);
-			break;		
+			break;
 	}
 	tcsetattr(SERIAL, TCSAFLUSH, &tios);
-	printf("\n**** SERIAL OUTPUT ENABLED ****\n");	
+	printf("\n**** SERIAL OUTPUT ENABLED ****\n");
 	printf("PORT: %s  BAUD: %i  FORMAT: %s\n", port, baud, format == 0 ? "Raw" : "Simple");
 }
 
@@ -108,12 +108,12 @@ void modesSerial(struct modesMessage *mm, int format){
 	char *r = &Modes.rawOut[Modes.rawOutUsed];
 	int  msgLen = mm->msgbits / 8;
 	int j;
-	
-	int msgType;	
+
+	int msgType;
 	char msg[64], *p = msg;
-	
+
 	int SERIAL = open(Modes.serialPort, O_RDWR);
-	
+
 	//===================================================================
 	// 0:RAW FORMAT :: [*RAW_HEX;]
 	//===================================================================
@@ -127,15 +127,16 @@ void modesSerial(struct modesMessage *mm, int format){
 		*r++ = ';';
 		*r++ = '\n';
 		Modes.rawOutUsed += ((msgLen*2) + 3);
-		
+                Modes.rawOutUsed = 0;
+
 		write(SERIAL, Modes.rawOut, Modes.rawOutUsed);
 		close(SERIAL);
 	}
-	
+
 	//===================================================================
 	// 1:SIMPLE FORMAT :: [MSGTYPE_/t_HEXID_/t_DATA]
 	//===================================================================
-	if(format == 1){		
+	if(format == 1){
 		if((mm->msgtype ==  4) || (mm->msgtype == 20)) {
 			msgType = 5;
 		} else if ((mm->msgtype ==  5) || (mm->msgtype == 21)) {
@@ -165,35 +166,35 @@ void modesSerial(struct modesMessage *mm, int format){
 		} else {
 			return;
 		}
-		
+
 		p += sprintf(p, "%d\t%06X\t", msgType, mm->addr);
-		
+
 		if (mm->bFlags & MODES_ACFLAGS_CALLSIGN_VALID)
 			p += sprintf(p, "%s\t", mm->flight);
-		
+
 		if ((mm->bFlags & MODES_ACFLAGS_AOG_GROUND) == MODES_ACFLAGS_AOG_GROUND) {
 			p += sprintf(p, "0\t");
 		} else if (mm->bFlags & MODES_ACFLAGS_ALTITUDE_VALID) {
 			p += sprintf(p, "%d\t", mm->altitude);
 		}
-		
+
 		if (mm->bFlags & MODES_ACFLAGS_SPEED_VALID)
 			p += sprintf(p, "%d\t", mm->velocity);
-			
+
 		if (mm->bFlags & MODES_ACFLAGS_HEADING_VALID)
 			p += sprintf(p, "%d\t", mm->heading);
-		
+
 		if (mm->bFlags & MODES_ACFLAGS_LATLON_VALID)
 			p += sprintf(p, "%1.6f\t%1.6f\t", mm->fLat, mm->fLon);
-		
+
 		if (mm->bFlags & MODES_ACFLAGS_VERTRATE_VALID)
 			p += sprintf(p, "%d\t", mm->vert_rate);
-		
+
 		if (mm->bFlags & MODES_ACFLAGS_SQUAWK_VALID)
 			p += sprintf(p, "%x\t", mm->modeA);
-		
+
 		p += sprintf(p, "\r\n");
-		
+
 		write(SERIAL, msg, strlen(msg));
 		close(SERIAL);
 	}
@@ -2067,8 +2068,10 @@ void useModesMessage(struct modesMessage *mm) {
         // In non-interactive non-quiet mode, display messages on standard output
         if (!Modes.interactive && !Modes.quiet) {
             displayModesMessage(mm);
-			modesSerial(mm, Modes.serialFormat);
         }
+
+        // Feed output to serial port
+        if (Modes.serial) {modesSerial(mm, Modes.serialFormat);}
 
         // Feed output clients
         if (Modes.net) {modesQueueOutput(mm);}
