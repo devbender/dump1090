@@ -133,11 +133,9 @@ void modesSerial(struct modesMessage *mm, int format){
 		}
 		*r++ = ';';
 		*r++ = '\n';
-		Modes.rawOutUsed += ((msgLen*2) + 3);
-        Modes.rawOutUsed = 0;
-
-		write(SERIAL, Modes.rawOut, Modes.rawOutUsed);
-		close(SERIAL);
+		Modes.rawOutUsed += ((msgLen*2) + 3);        
+		write(SERIAL, Modes.rawOut, Modes.rawOutUsed);		
+		Modes.rawOutUsed = 0;
 	}
 
 	//===================================================================
@@ -202,8 +200,7 @@ void modesSerial(struct modesMessage *mm, int format){
 
 		p += sprintf(p, "\r\n");
 
-		write(SERIAL, msg, strlen(msg));
-		close(SERIAL);
+		write(SERIAL, msg, strlen(msg));		
     }	
 }
 
