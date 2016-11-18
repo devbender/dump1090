@@ -77,10 +77,6 @@ To specify hexadecimal serial output format:
 
     ./dump1090 --serial-format 1
 
-To specify Mavlink protocol serial output format:
-
-    ./dump1090 --serial-format 3
-
 Using files as source of data
 ---
 

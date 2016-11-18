@@ -181,7 +181,7 @@
 #define MODES_NET_SNDBUF_MAX  (7)
 
 #ifndef HTMLPATH
-#define HTMLPATH   "./public_html"      // default path for gmap.html etc
+#define HTMLPATH   "/usr/share/dump1090/"      // default path for gmap.html etc
 #endif
 
 #define MODES_NOTUSED(V) ((void) V)
@@ -450,6 +450,7 @@ int  decodeCPRrelative  (struct aircraft *a, int fflag, int surface);
 void modesInitErrorInfo ();
 void modesInitSerial(const char* port, int baud, int format);
 void modesSerial(struct modesMessage *mm, int format);
+
 //
 // Functions exported from interactive.c
 //

@@ -101,7 +101,14 @@ void modesInitSerial(const char* port, int baud, int format) {
 	}
 	tcsetattr(SERIAL, TCSAFLUSH, &tios);
 	printf("\n**** SERIAL OUTPUT ENABLED ****\n");
-	printf("PORT: %s  BAUD: %i  FORMAT: %s\n", port, baud, format == 0 ? "Raw" : "Simple");
+    switch(format){
+        case 0:
+		    printf("PORT: %s  BAUD: %i  FORMAT: RAW\n", port, baud);
+            break;
+        case 1:
+            printf("PORT: %s  BAUD: %i  FORMAT: SIMPLE\n", port, baud);
+            break;
+    }
 }
 
 void modesSerial(struct modesMessage *mm, int format){
@@ -127,7 +134,7 @@ void modesSerial(struct modesMessage *mm, int format){
 		*r++ = ';';
 		*r++ = '\n';
 		Modes.rawOutUsed += ((msgLen*2) + 3);
-                Modes.rawOutUsed = 0;
+        Modes.rawOutUsed = 0;
 
 		write(SERIAL, Modes.rawOut, Modes.rawOutUsed);
 		close(SERIAL);
@@ -197,7 +204,7 @@ void modesSerial(struct modesMessage *mm, int format){
 
 		write(SERIAL, msg, strlen(msg));
 		close(SERIAL);
-	}
+    }	
 }
 
 uint32_t modesChecksum(unsigned char *msg, int bits) {

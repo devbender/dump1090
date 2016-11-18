@@ -442,7 +442,7 @@ void showHelp(void) {
 "--serial                 Enable Serial output with defauts (port:/dev/ttyS0 baud:115200)\n"
 "--serial-port <port>     Output to Serial Port (default: /dev/ttyS0)\n"
 "--serial-baud <baud>     Serial Port Baud (default: 115200)\n"
-"--serial-format <0:1>    Serial Output Format 0:Raw(hex)  1:Simple(decoded)(default: Raw)\n"
+"--serial-format <0:1>    Serial Output Format 0:Raw 1:Simple (default: Raw)\n"
 "--help                   Show this help\n"
 "\n"
 "Debug mode flags: d = Log frames decoded with errors\n"
