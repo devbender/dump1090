@@ -1,308 +1,117 @@
-Dump1090 README
-===
+# dump1090-fa Debian/Raspbian packages
 
-Dump 1090 is a Mode S decoder specifically designed for RTLSDR devices.
+dump1090-fa is a ADS-B, Mode S, and Mode 3A/3C demodulator and decoder that
+will receive and decode aircraft transponder messages received via
+a directly connected software defined radio, or from data provided over a
+network connection.
 
-The main features are:
+It is the successor to
+[dump1090-mutability](https://github.com/mutability/dump1090) and is
+maintained by [FlightAware](http://flightaware.com/).
 
-* Robust decoding of weak messages, with mode1090 many users observed
-  improved range compared to other popular decoders.
-* Network support: TCP30003 stream (MSG5...), Raw packets, HTTP.
-* Embedded HTTP server that displays the currently detected aircrafts on
-  Google Map.
-* Single bit errors correction using the 24 bit CRC.
-* Ability to decode DF11, DF17 messages.
-* Ability to decode DF formats like DF0, DF4, DF5, DF16, DF20 and DF21
-  where the checksum is xored with the ICAO address by brute forcing the
-  checksum field using recently seen ICAO addresses.
-* Decode raw IQ samples from file (using --ifile command line switch).
-* Interactive command-line-interfae mode where aircrafts currently detected
-  are shown as a list refreshing as more data arrives.
-* CPR coordinates decoding and track calculation from velocity.
-* TCP server streaming and recceiving raw data to/from connected clients
-  (using --net).
+It can provide a display of locally received aircraft data in a terminal or
+via a browser map. Together with [PiAware](http://flightaware.com/adsb/piaware)
+it can be used to contribute crowd-sourced flight tracking data to FlightAware.
 
-Installation
----
+It is designed to build as a Debian package, but should also be buildable on
+many other Linux or Unix-like systems.
 
-Type "make".
+## Building under buster
 
-Normal usage
----
+```bash
+$ sudo apt-get install build-essential debhelper librtlsdr-dev pkg-config dh-systemd libncurses5-dev libbladerf-dev libhackrf-dev liblimesuite-dev
+$ dpkg-buildpackage -b --no-sign
+```
 
-To capture traffic directly from your RTL device and show the captured traffic
-on standard output, just run the program without options at all:
+## Building under stretch
 
-    ./dump1090
+```bash
+$ sudo apt-get install build-essential debhelper librtlsdr-dev pkg-config dh-systemd libncurses5-dev libbladerf-dev
+$ dpkg-buildpackage -b --no-sign
+```
 
-To just output hexadecimal messages:
+## Building under jessie
 
-    ./dump1090 --raw
+### Dependencies - bladeRF
 
-To run the program in interactive mode:
+You will need a build of libbladeRF. You can build packages from source:
 
-    ./dump1090 --interactive
+```bash
+$ git clone https://github.com/Nuand/bladeRF.git  
+$ cd bladeRF  
+$ git checkout 2017.12-rc1  
+$ dpkg-buildpackage -b
+```
 
-To run the program in interactive mode, with networking support, and connect
-with your browser to http://localhost:8080 to see live traffic:
+Or Nuand has some build/install instructions including an Ubuntu PPA
+at https://github.com/Nuand/bladeRF/wiki/Getting-Started:-Linux
 
-    ./dump1090 --interactive --net
+Or FlightAware provides armhf packages as part of the piaware repository;
+see https://flightaware.com/adsb/piaware/install
 
-In iteractive mode it is possible to have a less information dense but more
-"arcade style" output, where the screen is refreshed every second displaying
-all the recently seen aircrafts with some additional information such as
-altitude and flight number, extracted from the received Mode S packets.
+### Dependencies - rtlsdr
 
-Serial output (NEW)
----
-To enable serial output with default settings (port:/dev/ttyS0 baud:115200):
+This is packaged with jessie. `sudo apt-get install librtlsdr-dev`
 
-    ./dump1090 --serial
-    
-To specify the serial port to use:
+### Actually building it
 
-    ./dump1090 --serial-port /dev/ttyAMA0
-	
-To specify serial port baud rate:
+Nothing special, just build it (`dpkg-buildpackage -b`)
 
-    ./dump1090 --serial-baud 57600
-	
-To specify simple (decoded) serial output format:
+## Building with limited dependencies
 
-    ./dump1090 --serial-format 0
-	
-This will output decoded messages in tab separated values >> MSGID \t HEXID \t DECODED_DATA \n
+The package supports some build profiles to allow building without all
+required SDR libraries being present. This will produce a package with
+limited SDR support only.
 
-To specify hexadecimal serial output format:
+Pass `--build-profiles` to `dpkg-buildpackage` with a comma-separated list of
+profiles. The list of profiles should include `custom` and zero or more of
+`rtlsdr`, `bladerf`, `hackrf`, `limesdr` depending on what you want:
 
-    ./dump1090 --serial-format 1
+```bash
+$ dpkg-buildpackage -b --no-sign --build-profiles=custom,rtlsdr          # builds with rtlsdr support only
+$ dpkg-buildpackage -b --no-sign --build-profiles=custom,rtlsdr,bladerf  # builds with rtlsdr and bladeRF support
+$ dpkg-buildpackage -b --no-sign --build-profiles=custom                 # builds with _no_ SDR support (network support only)
+```
 
-Using files as source of data
----
+## Building manually
 
-To decode data from file, use:
+You can probably just run "make" after installing the required dependencies.
+Binaries are built in the source directory; you will need to arrange to
+install them (and a method for starting them) yourself.
 
-    ./dump1090 --ifile /path/to/binfile
+``make BLADERF=no`` will disable bladeRF support and remove the dependency on
+libbladeRF.
 
-The binary file should be created using `rtl_sdr` like this (or with any other
-program that is able to output 8-bit unsigned IQ samples at 2Mhz sample rate).
+``make RTLSDR=no`` will disable rtl-sdr support and remove the dependency on
+librtlsdr.
 
-    rtl_sdr -f 1090000000 -s 2000000 -g 50 output.bin
+``make HACKRF=no`` will disable HackRF support and remove the dependency on 
+libhackrf.
 
-In the example `rtl_sdr` a gain of 50 is used, simply you should use the highest
-gain availabe for your tuner. This is not needed when calling Dump1090 itself
-as it is able to select the highest gain supported automatically.
+``make LIMESDR=no`` will disable LimeSDR support and remove the dependency on
+libLimeSuite.
 
-It is possible to feed the program with data via standard input using
-the --ifile option with "-" as argument.
+## Building on OSX
 
-Additional options
----
+Minimal testing on Mojave 10.14.6, YMMV.
 
-Dump1090 can be called with other command line options to set a different
-gain, frequency, and so forth. For a list of options use:
-
-    ./dump1090 --help
-
-Everything is not documented here should be obvious, and for most users calling
-it without arguments at all is the best thing to do.
-
-Reliability
----
-
-By default Dump1090 checks for decoding errors using the 24-bit CRC checksum,
-where available. Messages with errors are discarded.
-
-The --fix command line switch enables fixing single bit error correction
-based on the CRC checksum. Technically, it uses a table of precomputed
-checksum differences resulting from single bit errors to look up the
-wrong bit position.
-
-This is indeed able to fix errors and works reliably in my experience,
-however if you are interested in very reliable data I suggest to use
-the --no-fix command line switch in order to disable error fixing.
-
-Performances and sensibility of detection
----
-
-In my limited experience Dump1090 was able to decode a big number of messages
-even in conditions where I encountered problems using other programs, however
-no formal test was performed so I can't really claim that this program is
-better or worse compared to other similar programs.
-
-If you can capture traffic that Dump1090 is not able to decode properly, drop
-me an email with a download link. I may try to improve the detection during
-my free time (this is just an hobby project).
-
-Network server features
----
-
-By enabling the networking support with --net Dump1090 starts listening
-for clients connections on port 30002 and 30001 (you can change both the
-ports if you want, see --help output).
-
-Port 30002
----
-
-Connected clients are served with data ASAP as they arrive from the device
-(or from file if --ifile is used) in the raw format similar to the following:
-
-    *8D451E8B99019699C00B0A81F36E;
-
-Every entry is separated by a simple newline (LF character, hex 0x0A).
-
-Port 30001
----
-
-Port 30001 is the raw input port, and can be used to feed Dump1090 with
-data in the same format as specified above, with hex messages starting with
-a `*` and ending with a `;` character.
-
-So for instance if there is another remote Dump1090 instance collecting data
-it is possible to sum the output to a local Dump1090 instance doing something
-like this:
-
-    nc remote-dump1090.example.net 30002 | nc localhost 30001
-
-It is important to note that what is received via port 30001 is also
-broadcasted to clients listening to port 30002.
-
-In general everything received from port 30001 is handled exactly like the
-normal traffic from RTL devices or from file when --ifile is used.
-
-It is possible to use Dump1090 just as an hub using --ifile with /dev/zero
-as argument as in the following example:
-
-    ./dump1090 --net-only
-
-Or alternatively to see what's happening on the screen:
-
-    ./dump1090 --net-only --interactive
-
-Then you can feed it from different data sources from the internet.
-
-Port 30003
----
-
-Connected clients are served with messages in SBS1 (BaseStation) format,
-similar to:
-
-    MSG,4,,,738065,,,,,,,,420,179,,,0,,0,0,0,0
-    MSG,3,,,738065,,,,,,,35000,,,34.81609,34.07810,,,0,0,0,0
-
-This can be used to feed data to various sharing sites without the need to use another decoder.
-
-Antenna
----
-
-Mode S messages are transmitted in the 1090 Mhz frequency. If you have a decent
-antenna you'll be able to pick up signals from aircrafts pretty far from your
-position, especially if you are outdoor and in a position with a good sky view.
-
-You can easily build a very cheap antenna following the istructions at:
-
-    http://antirez.com/news/46
-
-With this trivial antenna I was able to pick up signals of aircrafts 200+ Km
-away from me.
-
-If you are interested in a more serious antenna check the following
-resources:
-
-* http://gnuradio.org/redmine/attachments/download/246/06-foster-adsb.pdf
-* http://www.lll.lu/~edward/edward/adsb/antenna/ADSBantenna.html
-* http://modesbeast.com/pix/adsb-ant-drawing.gif
-
-Aggressive mode
----
-
-With --aggressive it is possible to activate the *aggressive mode* that is a
-modified version of the Mode S packet detection and decoding.
-The aggresive mode uses more CPU usually (especially if there are many planes
-sending DF17 packets), but can detect a few more messages.
-
-The algorithm in aggressive mode is modified in the following ways:
-
-* Up to two demodulation errors are tolerated (adjacent entires in the
-  magnitude vector with the same eight). Normally only messages without
-  errors are checked.
-* It tries to fix DF17 messages with CRC errors resulting from any two bit
-  errors.
-
-The use of aggressive mdoe is only advised in places where there is
-low traffic in order to have a chance to capture some more messages.
-
-Debug mode
----
-
-The Debug mode is a visual help to improve the detection algorithm or to
-understand why the program is not working for a given input.
-
-In this mode messages are displayed in an ASCII-art style graphical
-representation, where the individial magnitude bars sampled at 2Mhz are
-displayed.
-
-An index shows the sample number, where 0 is the sample where the first
-Mode S peak was found. Some additional background noise is also added
-before the first peak to provide some context.
-
-To enable debug mode and check what combinations of packets you can
-log, use `mode1090 --help` to obtain a list of available debug flags.
-
-Debug mode includes an optional javascript output that is used to visualize
-packets using a web browser, you can use the file debug.html under the
-'tools' directory to load the generated frames.js file.
-
-How this program works?
----
-
-The code is very documented and written in order to be easy to understand.
-For the diligent programmer with a Mode S specification on his hands it
-should be trivial to understand how it works.
-
-The algorithms I used were obtained basically looking at many messages
-as displayed using a trow-away SDL program, and trying to model the algorithm
-based on how the messages look graphically.
-
-How to test the program?
----
-
-If you have an RTLSDR device and you happen to be in an area where there
-are aircrafts flying over your head, just run the program and check for signals.
-
-However if you don't have an RTLSDR device, or if in your area the presence
-of aircrafts is very limited, you may want to try the sample file distributed
-with the Dump1090 distribution under the "testfiles" directory.
-
-Just run it like this:
-
-    ./dump1090 --ifile testfiles/modes1.bin
-
-What is --strip mode?
----
-
-It is just a simple filter that will get raw IQ 8 bit samples in input
-and will output a file missing all the parts of the file where I and Q
-are lower than the specified <level> for more than 32 samples.
-
-Use it like this:
-
-    cat big.bin | ./dump1090 --snip 25 > small.bin
-
-I used it in order to create a small test file to include inside this
-program source code distribution.
-
-Contributing
----
-
-Dump1090 was written during some free time during xmas 2012, it is an hobby
-project so I'll be able to address issues and improve it only during
-free time, however you are incouraged to send pull requests in order to
-improve the program. A good starting point can be the TODO list included in
-the source distribution.
-
-Credits
----
-
-Dump1090 was written by Salvatore Sanfilippo <antirez@gmail.com> and is
-released under the BSD three clause license.
+```
+$ brew install librtlsdr
+$ brew install libbladerf
+$ brew install hackrf
+$ brew install pkg-config
+$ make
+```
+
+## Building on FreeBSD
+
+Minimal testing on 12.1-RELEASE, YMMV.
+
+```
+# pkg install gmake
+# pkg install pkgconf
+# pkg install rtl-sdr
+# pkg install bladerf
+# pkg install hackrf
+$ gmake
+```
