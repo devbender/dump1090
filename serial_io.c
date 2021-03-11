@@ -49,6 +49,9 @@
 
 #include "dump1090.h"
 
+/* for PRIX64 */
+#include <inttypes.h>
+
 /* for Mavlink definitions */
 #include "modules/c_library_v2/common/mavlink.h"
 
@@ -282,9 +285,9 @@ void modesCloseSerial(void) {
 //
 //=========================================================================
 //
-// Send Mavlink Heartbeat
+// Send mavlink heartbeat
 //
-void modesSerialHeartbeat() {
+void modesSerialMavlinkHeartbeat() {
 
 	mavlink_message_t mav_heartbeat_message;    
     uint8_t mav_heartbeat_buffer[MAVLINK_MAX_PACKET_LEN];
@@ -310,9 +313,9 @@ void modesSerialHeartbeat() {
 //
 //=========================================================================
 //
-// Close
+// Send all aircrafts in list in mavlink format
 //
-void modesSerialSendAircrafts(void) {
+void modesSerialMavlinkSendAircrafts(void) {
 	
 	struct aircraft *a;
 	
@@ -325,26 +328,54 @@ void modesSerialSendAircrafts(void) {
 
 		// Output serial in specified format
 		else {
-			if(Modes.serial.format == MAVLINK_SERIAL) 
-				modesSerialMavlinkOutput(a);
-			else if(Modes.serial.format == RAW_SERIAL) 
-				modesSerialRawOutput(a);
-			else if(Modes.serial.format == SBS_SERIAL) 
-				modesSerialSBSOutput(a);
-			else 
-				modesSerialMavlinkOutput(a);
+			modesSerialMavlinkOutput(a);
 		}
 	}	
 }
 
 
-void modesSerialRawOutput(struct aircraft *a) {
+void modesSerialRawOutput(struct modesMessage *mm,struct aircraft *a) {
+	
+	// Don't ever forward mlat messages via raw output.
+    if (mm->source == SOURCE_MLAT)
+        return;
 
+    // Filter some messages
+    // Don't forward 2-bit-corrected messages
+    if (mm->correctedbits >= 2)
+        return;
+
+    // Don't forward unreliable messages
+    if ((a && !a->reliable) && !mm->reliable)
+        return;
+
+    int msgLen = mm->msgbits / 8;
+	char data[msgLen*2 +15], *p = data;
+
+    if (Modes.mlat && mm->timestampMsg) {
+        /* timestamp, big-endian */
+        sprintf(p, "@%012" PRIX64,
+                mm->timestampMsg);
+        p += 13;
+    } else
+        *p++ = '*';
+
+    unsigned char *msg = mm->msg;
+    for (int j = 0; j < msgLen; j++) {
+        sprintf(p, "%02X", msg[j]);
+        p += 2;
+    }
+
+    *p++ = ';';
+    *p++ = '\n';
+
+	// Write to Serial Port
+	serialWrite((uint8_t*)data, msgLen);
 }
 
 
 
-void modesSerialSBSOutput(struct aircraft *a) {
+void modesSerialSBSOutput(struct modesMessage *mm,struct aircraft *a) {
 
 }
 

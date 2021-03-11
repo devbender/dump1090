@@ -140,10 +140,10 @@ all: dump1090 view1090
 dump1090: dump1090.o anet.o interactive.o mode_ac.o mode_s.o comm_b.o net_io.o serial_io.o crc.o demod_2400.o stats.o cpr.o icao_filter.o track.o util.o convert.o ais_charset.o $(SDR_OBJ) $(COMPAT)
 	$(CC) -g -o $@ $^ $(LDFLAGS) $(LIBS) $(LIBS_SDR) -lncurses
 
-view1090: view1090.o anet.o interactive.o mode_ac.o mode_s.o comm_b.o net_io.o crc.o stats.o cpr.o icao_filter.o track.o util.o ais_charset.o $(COMPAT)
+view1090: view1090.o anet.o interactive.o mode_ac.o mode_s.o comm_b.o net_io.o serial_io.o crc.o stats.o cpr.o icao_filter.o track.o util.o ais_charset.o $(COMPAT)
 	$(CC) -g -o $@ $^ $(LDFLAGS) $(LIBS) -lncurses
 
-faup1090: faup1090.o anet.o mode_ac.o mode_s.o comm_b.o net_io.o crc.o stats.o cpr.o icao_filter.o track.o util.o ais_charset.o $(COMPAT)
+faup1090: faup1090.o anet.o mode_ac.o mode_s.o comm_b.o net_io.o crc.o stats.o serial_io.o cpr.o icao_filter.o track.o util.o ais_charset.o $(COMPAT)
 	$(CC) -g -o $@ $^ $(LDFLAGS) $(LIBS)
 
 clean:

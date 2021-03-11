@@ -374,13 +374,14 @@ static void backgroundTasks(void) {
         interactiveShowData();
     }
 
-    if(Modes.serial.enable) {
+    // Feed Mavlink serial output periodically as opposed to at message reception
+    if(Modes.serial.enable || Modes.serial.format == MAVLINK_SERIAL) {
 
         if(Modes.serial.lastSend + Modes.serial.interval <= now) {
             Modes.serial.lastSend = now;
             
-            modesSerialHeartbeat();
-            modesSerialSendAircrafts();            
+            modesSerialMavlinkHeartbeat();
+            modesSerialMavlinkSendAircrafts();            
         }
     }
 

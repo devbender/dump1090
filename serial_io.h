@@ -46,9 +46,10 @@ void modesInitSerial(void);
 void modesCloseSerial(void);
 
 void modesSerialMavlinkOutput(struct aircraft*);
-void modesSerialRawOutput(struct aircraft*);
-void modesSerialSBSOutput(struct aircraft*);
+void modesSerialRawOutput(struct modesMessage*, struct aircraft*);
+void modesSerialSBSOutput(struct modesMessage*, struct aircraft*);
 
-void modesSerialSendAircrafts(void);
-void modesSerialHeartbeat(void);
+void modesSerialMavlinkHeartbeat(void);
+void modesSerialMavlinkSendAircrafts(void);
+
 #endif
