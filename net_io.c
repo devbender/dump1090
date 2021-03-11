@@ -55,8 +55,12 @@
 #include <assert.h>
 #include <stdarg.h>
 
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+
 /* for Mavlink definitions */
 #include "modules/c_library_v2/common/mavlink.h"
+
+
 
 //
 // ============================= Networking =============================

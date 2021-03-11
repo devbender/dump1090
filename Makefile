@@ -5,7 +5,7 @@ DUMP1090_VERSION ?= unknown
 CPPFLAGS += -DMODES_DUMP1090_VERSION=\"$(DUMP1090_VERSION)\" -DMODES_DUMP1090_VARIANT=\"dump1090-fa\"
 
 DIALECT = -std=c11
-CFLAGS += $(DIALECT) -O3 -g -Wall -Wmissing-declarations -W -D_DEFAULT_SOURCE -fno-common
+CFLAGS += $(DIALECT) -O3 -g -Wall -Wmissing-declarations -Werror -W -D_DEFAULT_SOURCE -fno-common
 LIBS = -lpthread -lm
 SDR_OBJ = sdr.o fifo.o sdr_ifile.o
 
