@@ -55,6 +55,9 @@
 #include <assert.h>
 #include <stdarg.h>
 
+/* for Mavlink definitions */
+#include "modules/c_library_v2/common/mavlink.h"
+
 //
 // ============================= Networking =============================
 //
@@ -78,6 +81,7 @@ static void send_raw_heartbeat(struct net_service *service);
 static void send_beast_heartbeat(struct net_service *service);
 static void send_sbs_heartbeat(struct net_service *service);
 static void send_stratux_heartbeat(struct net_service *service);
+static void send_mavlink_heartbeat(struct net_service *service); 
 
 static void writeBeastMessage(struct net_writer *writer, uint64_t timestamp, double signalLevel, unsigned char *msg, int msgLen);
 
@@ -128,6 +132,7 @@ struct net_service *serviceInit(const char *descr, struct net_writer *writer, he
         service->writer->service = service;
         service->writer->dataUsed = 0;
         service->writer->lastWrite = mstime();
+        service->writer->lastHb = mstime();
         service->writer->send_heartbeat = hb;
     }
 
@@ -276,6 +281,9 @@ void modesInitNet(void) {
 
     s = serviceInit("Stratux TCP output", &Modes.stratux_out, send_stratux_heartbeat, READ_MODE_IGNORE, NULL, NULL);
     serviceListen(s, Modes.net_bind_address, Modes.net_output_stratux_ports);
+
+    s = serviceInit("Mavlink TCP output", &Modes.mavlink_out, send_mavlink_heartbeat, READ_MODE_IGNORE, NULL, NULL);
+    serviceListen(s, Modes.net_bind_address, Modes.net_output_mavlink_ports);
 
     s = serviceInit("Raw TCP input", NULL, NULL, READ_MODE_ASCII, "\n", decodeHexMessage);
     serviceListen(s, Modes.net_bind_address, Modes.net_input_raw_ports);
@@ -785,6 +793,209 @@ static void send_sbs_heartbeat(struct net_service *service)
     completeWrite(service->writer, data + len);
 }
 
+
+//
+//=========================================================================
+//
+// Write Mavlink output to TCP clients
+
+static void modesSendMavlinkOutput(struct modesMessage *mm, struct aircraft *a) {    
+
+    // We require a tracked aircraft for Mavlink output
+    if (!a)
+        return;
+
+    // Don't ever forward 2-bit-corrected messages via Mavlink output.
+    if (mm->correctedbits >= 2)
+        return;
+
+    // Don't ever forward mlat messages via Mavlink output.
+    if (mm->source == SOURCE_MLAT)
+        return;
+
+    // Don't ever send unreliable messages via Mavlink output
+    if (!mm->reliable && !a->reliable)
+        return;
+
+    // For now, suppress non-ICAO addresses
+    if (mm->addr & MODES_NON_ICAO_ADDRESS)
+        return;
+
+    // Suppress aircrafts without valid position
+    if(!trackDataValid(&a->position_valid))
+        return;
+
+    char *data;
+    mavlink_message_t adsb_message;
+    uint8_t adsb_buffer[MAVLINK_MAX_PACKET_LEN];
+
+    uint8_t system_id = 254; // 255 is GCS, high enough to avoid ID collisions
+    uint8_t component_id = MAV_COMP_ID_ADSB; 
+
+    uint32_t icao_address = a->addr;
+    int32_t lat = 0, lon = 0;
+    uint8_t altitude_type = 0;
+    int32_t altitude = 0;
+    uint16_t heading = 0;
+    uint16_t hor_velocity = 0;
+    int16_t ver_velocity = 0;
+    uint8_t emitter_type = 0;
+    uint32_t tslc = (mstime() - a->seen) / 1000;
+    uint16_t flags = 0;
+    uint16_t squawk = 0;
+    char callsign[9];
+
+    // Callsign
+    memset(callsign, '\0', sizeof(callsign));
+
+    if (trackDataValid(&a->callsign_valid)){
+        flags |= ADSB_FLAGS_VALID_CALLSIGN;
+        strncpy(callsign, a->callsign, sizeof(callsign));
+    }
+
+    // Altitude (barometric preferred) [milimiters]
+    if (trackDataValid(&a->altitude_baro_valid)) {
+        altitude_type = ADSB_ALTITUDE_TYPE_GEOMETRIC;
+        flags |= ADSB_FLAGS_VALID_ALTITUDE;
+        altitude = a->altitude_baro * 304.8; // ft -> mm
+
+    } else if (trackDataValid(&a->altitude_geom_valid)) {
+        altitude_type = ADSB_ALTITUDE_TYPE_PRESSURE_QNH;
+        flags |= ADSB_FLAGS_VALID_ALTITUDE;
+        altitude = a->altitude_geom * 304.8; // ft -> mm
+    }
+
+    // Speed (ground speed used) and vrate (barometric preferred) [centimeter per second]
+    if (trackDataValid(&a->gs_valid) && trackDataValid(&a->baro_rate_valid)) {
+        flags |= ADSB_FLAGS_VALID_VELOCITY;
+        hor_velocity = a->gs * 51.44; // kts -> cm/s
+        ver_velocity = a->baro_rate * 0.508; // ft/min -> cm/s
+
+    } else if(trackDataValid(&a->gs_valid) && trackDataValid(&a->geom_rate_valid)) {
+        flags |= ADSB_FLAGS_VALID_VELOCITY;
+        hor_velocity = a->gs * 51.44; // kts -> cm/s
+        ver_velocity = a->geom_rate * 0.508; // ft/min -> cm/s
+    }
+    
+    // Heading (ground track preferred) [degrees x 100]
+    if (trackDataValid(&a->track_valid)) {
+        flags |= ADSB_FLAGS_VALID_HEADING;
+        heading = a->track * 100; // deg -> deg * 1e2
+
+    } else if (trackDataValid(&a->mag_heading_valid)) {
+        flags |= ADSB_FLAGS_VALID_HEADING;
+        heading = a->mag_heading * 100; // deg -> deg * 1e2
+    }
+    
+    // Position: Lat & Lon [deg x 10^7]
+    if (trackDataValid(&a->position_valid)) {
+        flags |= ADSB_FLAGS_VALID_COORDS;
+        lat = (int32_t)(a->lat * 1e7); // deg * 1e7
+        lon = (int32_t)(a->lon * 1e7); // deg * 1e7
+    }
+
+    // Squawk
+    if (trackDataValid(&a->squawk_valid)) {
+        squawk = a->squawk;
+    }
+
+    // Category
+    if (mm->category_valid) {
+        switch(a->category) {
+            case 0x00: emitter_type = ADSB_EMITTER_TYPE_NO_INFO;            break;
+            case 0xA0: emitter_type = ADSB_EMITTER_TYPE_NO_INFO;            break;
+            case 0xA1: emitter_type = ADSB_EMITTER_TYPE_LIGHT;              break;
+            case 0xA2: emitter_type = ADSB_EMITTER_TYPE_SMALL;              break;
+            case 0xA3: emitter_type = ADSB_EMITTER_TYPE_LARGE;              break;
+            case 0xA4: emitter_type = ADSB_EMITTER_TYPE_HIGH_VORTEX_LARGE;  break;
+            case 0xA5: emitter_type = ADSB_EMITTER_TYPE_HEAVY;              break;
+            case 0xA6: emitter_type = ADSB_EMITTER_TYPE_HIGHLY_MANUV;       break;
+            case 0xA7: emitter_type = ADSB_EMITTER_TYPE_ROTOCRAFT;          break;
+
+            case 0xB0: emitter_type = ADSB_EMITTER_TYPE_UNASSIGNED;         break;
+            case 0xB1: emitter_type = ADSB_EMITTER_TYPE_GLIDER;             break;
+            case 0xB2: emitter_type = ADSB_EMITTER_TYPE_LIGHTER_AIR;        break;
+            case 0xB3: emitter_type = ADSB_EMITTER_TYPE_PARACHUTE;          break;
+            case 0xB4: emitter_type = ADSB_EMITTER_TYPE_ULTRA_LIGHT;        break;
+            case 0xB5: emitter_type = ADSB_EMITTER_TYPE_UNASSIGNED2;        break;
+            case 0xB6: emitter_type = ADSB_EMITTER_TYPE_UAV;                break;
+            case 0xB7: emitter_type = ADSB_EMITTER_TYPE_SPACE;              break;
+
+            case 0xC0: emitter_type = ADSB_EMITTER_TYPE_UNASSGINED3;        break;
+            case 0xC1: emitter_type = ADSB_EMITTER_TYPE_EMERGENCY_SURFACE;  break;
+            case 0xC2: emitter_type = ADSB_EMITTER_TYPE_SERVICE_SURFACE;    break;
+            case 0xC3: emitter_type = ADSB_EMITTER_TYPE_POINT_OBSTACLE;     break;
+            
+            default: emitter_type = ADSB_EMITTER_TYPE_NO_INFO;
+        }
+    }
+
+    // Pack mavlink message
+    mavlink_msg_adsb_vehicle_pack(system_id,
+                                  component_id,
+                                  &adsb_message,
+                                  icao_address,
+                                  lat,
+                                  lon,
+                                  altitude_type,
+                                  altitude,
+                                  heading,
+                                  hor_velocity,
+                                  ver_velocity,
+                                  callsign,
+                                  emitter_type,
+                                  tslc < 255 ? (uint8_t)tslc : 255,
+                                  flags,
+                                  squawk);
+
+    // Send packed message to buffer
+    uint16_t len = mavlink_msg_to_send_buffer(adsb_buffer, &adsb_message);
+
+    data = prepareWrite(&Modes.mavlink_out, MAVLINK_MAX_PACKET_LEN);
+    if (!data)
+        return;
+
+    memcpy(data, adsb_buffer, len);
+    completeWrite(&Modes.mavlink_out, data + len);
+}
+
+
+static void send_mavlink_heartbeat(struct net_service *service) {
+    
+    char *data;
+    mavlink_message_t mav_heartbeat_message;    
+    uint8_t mav_heartbeat_buffer[MAVLINK_MAX_PACKET_LEN];
+
+    // Pack mavlink message
+    mavlink_msg_heartbeat_pack(254,
+                               MAV_COMP_ID_ADSB,
+                               &mav_heartbeat_message,
+                               MAV_TYPE_ADSB,
+                               MAV_AUTOPILOT_INVALID,
+                               0, 0,
+                               MAV_STATE_ACTIVE);
+
+    // Send packed message to buffer
+    uint16_t len = mavlink_msg_to_send_buffer(mav_heartbeat_buffer, &mav_heartbeat_message);
+
+    if (!service->writer)
+        return;
+
+    data = prepareWrite(service->writer, len);
+    if (!data)
+        return;
+
+    memcpy(data, mav_heartbeat_buffer, len);
+    completeWrite(service->writer, data + len);
+
+    service->writer->lastHb = mstime();
+}
+//
+//=========================================================================
+//
+
+
+
 //
 //=========================================================================
 //
@@ -996,6 +1207,7 @@ void modesQueueOutput(struct modesMessage *mm, struct aircraft *a) {
     // Delegate to the format-specific outputs, each of which makes its own decision about filtering messages
     modesSendSBSOutput(mm, a);
     modesSendStratuxOutput(mm, a);
+    modesSendMavlinkOutput(mm,a);
     modesSendRawOutput(mm, a);
     modesSendBeastVerbatimOutput(mm, a);
     modesSendBeastCookedOutput(mm, a);
@@ -2620,13 +2832,23 @@ void modesNetPeriodicWork(void) {
     // If we have generated no messages for a while, send
     // a heartbeat
     if (Modes.net_heartbeat_interval) {
+
         for (s = Modes.services; s; s = s->next) {
-            if (s->writer &&
+
+            if (Modes.mavlink &&
+                s->writer &&
                 s->connections &&
                 s->writer->send_heartbeat &&
-                (s->writer->lastWrite + Modes.net_heartbeat_interval) <= now) {
-                s->writer->send_heartbeat(s);
-            }
+                (s->writer->lastHb + Modes.net_heartbeat_interval <= now )) {
+                    s->writer->send_heartbeat(s);
+            } 
+            else if (!Modes.mavlink &&
+                     s->writer &&
+                     s->connections &&
+                     s->writer->send_heartbeat &&
+                    (s->writer->lastWrite + Modes.net_heartbeat_interval) <= now) {
+                        s->writer->send_heartbeat(s);
+            }            
         }
     }
 

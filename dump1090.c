@@ -109,10 +109,6 @@ static void modesInitConfig(void) {
     memset(&Modes, 0, sizeof(Modes));
 
     // Now initialise things that should not be 0/NULL to their defaults
-    Modes.serial                  = 0;
-    Modes.serialPort              = "/dev/ttyS0";
-    Modes.serialBaud              = 115200;
-    Modes.serialFormat            = 0;
     Modes.gain                    = MODES_MAX_GAIN;
     Modes.freq                    = MODES_DEFAULT_FREQ;
     Modes.check_crc               = 1;
@@ -122,6 +118,12 @@ static void modesInitConfig(void) {
     Modes.json_location_accuracy  = 1;
     Modes.maxRange                = 1852 * 300; // 300NM default max range
     Modes.mode_ac_auto            = 1;
+
+    Modes.serial.enable           = 0;
+    Modes.serial.port             = "/dev/ttyUSB0";
+    Modes.serial.baud             = 115200;
+    Modes.serial.format           = MAVLINK_SERIAL;
+    Modes.serial.interval         = 1000;
 
     sdrInitConfig();
 }
@@ -300,12 +302,17 @@ static void showHelp(void)
 "--net-bi-port <ports>    TCP Beast input listen ports  (default: 30004,30104)\n"
 "--net-bo-port <ports>    TCP Beast output listen ports (default: 30005)\n"
 "--net-stratux-port <ports>   TCP Stratux output listen ports (default: disabled)\n"
+"--net-mavlink-port <ports>   TCP Mavlink output listen ports (default: disabled)\n"
 "--net-ro-size <size>     TCP output minimum size (default: 0)\n"
 "--net-ro-interval <rate> TCP output memory flush rate in seconds (default: 0)\n"
 "--net-heartbeat <rate>   TCP heartbeat rate in seconds (default: 60 sec; 0 to disable)\n"
 "--net-buffer <n>         TCP buffer size 64Kb * (2^n) (default: n=0, 64Kb)\n"
 "--net-verbatim           Make Beast-format output connections default to verbatim mode\n"
 "                         (forward all messages, without applying CRC corrections)\n"
+"--serial                 Enable serial output with defaults (port:/dev/ttyUSB0 baud:115200 format:Mavlink)\n"
+"--serial-port <port>     Output to Serial Port (default: /dev/ttyUSB0)\n"
+"--serial-baud <baud>     Serial Port Baud (default: 115200)\n"
+"--serial-format          Serial Output Format 0:Mavlink 1:Raw 2:SBS (default: 0)\n"
 "--forward-mlat           Allow forwarding of received mlat results to output ports\n"
 "--lat <latitude>         Reference/receiver latitude for surface posn (opt)\n"
 "--lon <longitude>        Reference/receiver longitude for surface posn (opt)\n"
@@ -365,6 +372,16 @@ static void backgroundTasks(void) {
     // Refresh screen when in interactive mode
     if (Modes.interactive) {
         interactiveShowData();
+    }
+
+    if(Modes.serial.enable) {
+
+        if(Modes.serial.lastSend + Modes.serial.interval <= now) {
+            Modes.serial.lastSend = now;
+            
+            modesSerialHeartbeat();
+            modesSerialSendAircrafts();            
+        }
     }
 
     // copy out reader CPU time and reset it
@@ -557,10 +574,30 @@ int main(int argc, char **argv) {
             Modes.net = 1;
             free(Modes.net_output_stratux_ports);
             Modes.net_output_stratux_ports = strdup(argv[++j]);
+        } else if (!strcmp(argv[j],"--net-mavlink-port") && more) {
+            Modes.net = 1;
+            Modes.mavlink = 1;
+            Modes.net_heartbeat_interval = 1000;
+            free(Modes.net_output_mavlink_ports);
+            Modes.net_output_mavlink_ports = strdup(argv[++j]);
         } else if (!strcmp(argv[j],"--net-buffer") && more) {
             Modes.net_sndbuf_size = atoi(argv[++j]);
         } else if (!strcmp(argv[j],"--net-verbatim")) {
             Modes.net_verbatim = 1;
+
+        } else if (!strcmp(argv[j],"--serial")) {
+            Modes.serial.enable = 1;
+        } else if (!strcmp(argv[j],"--serial-port") && more) {
+            Modes.serial.enable = 1;
+            Modes.serial.port = strdup(argv[++j]);
+        } else if (!strcmp(argv[j],"--serial-baud") && more) {
+            Modes.serial.enable = 1;
+            Modes.serial.baud = atoi(argv[++j]);
+        } else if (!strcmp(argv[j],"--serial-format") && more) {
+            Modes.serial.enable = 1;
+            Modes.serial.format = atoi(argv[++j]);
+
+        
         } else if (!strcmp(argv[j],"--forward-mlat")) {
             Modes.forward_mlat = 1;
         } else if (!strcmp(argv[j],"--onlyaddr")) {
@@ -651,6 +688,10 @@ int main(int argc, char **argv) {
         modesInitNet();
     }
 
+    if (Modes.serial.enable) {
+        modesInitSerial();
+    }
+
     // init stats:
     Modes.stats_current.start = Modes.stats_current.end =
         Modes.stats_alltime.start = Modes.stats_alltime.end =
@@ -739,6 +780,10 @@ int main(int argc, char **argv) {
     sdrClose();
     fifo_destroy();
 
+    if (Modes.serial.enable) {
+        modesCloseSerial();
+    }
+
     if (Modes.exit == 1) {
         log_with_timestamp("Normal exit.");
         return 0;
@@ -747,7 +792,6 @@ int main(int argc, char **argv) {
         return 1;
     }
 }
-
 //
 //=========================================================================
 //

@@ -79,6 +79,7 @@
 #include <sys/ioctl.h>
 #include <time.h>
 #include <limits.h>
+#include <termios.h>
 
 #include "compat/compat.h"
 
@@ -254,6 +255,7 @@ typedef enum {
 #include "util.h"
 #include "anet.h"
 #include "net_io.h"
+#include "serial_io.h"
 #include "crc.h"
 #include "demod_2400.h"
 #include "stats.h"
@@ -286,12 +288,6 @@ struct _Modes {                             // Internal state
     // Sample conversion
     int            dc_filter;        // should we apply a DC filter?
 
-    // Serial
-    int			  serial;
-    int			  serialBaud;
-    char		  *serialPort;	
-    int			  serialFormat;
-	
     // RTLSDR
     char *        dev_name;
     int           gain;
@@ -310,7 +306,11 @@ struct _Modes {                             // Internal state
     struct net_writer beast_cooked_out;          // Beast-format output, "cooked" mode
     struct net_writer sbs_out;                   // SBS-format output
     struct net_writer stratux_out;               // Stratux-format output
+    struct net_writer mavlink_out;               // MAvlink-format output
     struct net_writer fatsv_out;                 // FATSV-format output
+
+    // Serial
+    struct serial_writer serial;                 // Serial output
 
 #ifdef _WIN32
     WSADATA        wsaData;          // Windows socket initialisation
@@ -325,6 +325,7 @@ struct _Modes {                             // Internal state
     int   mode_ac_auto;              // allow toggling of A/C by Beast commands
     int   net;                       // Enable networking
     int   net_only;                  // Enable just networking
+    int   mavlink;                   // Mavlink flag for continous heartbeats
     uint64_t net_heartbeat_interval; // TCP heartbeat interval (milliseconds)
     int   net_output_flush_size;     // Minimum Size of output data
     uint64_t net_output_flush_interval; // Maximum interval (in milliseconds) between outputwrites
@@ -332,6 +333,7 @@ struct _Modes {                             // Internal state
     char *net_input_raw_ports;       // List of raw input TCP ports
     char *net_output_sbs_ports;      // List of SBS output TCP ports
     char *net_output_stratux_ports;  // List of Stratux output TCP ports
+    char *net_output_mavlink_ports;  // List of Mavlink output TCP ports ***
     char *net_input_beast_ports;     // List of Beast input TCP ports
     char *net_output_beast_ports;    // List of Beast output TCP ports
     char *net_bind_address;          // Bind address

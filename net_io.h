@@ -68,6 +68,7 @@ struct net_writer {
     void *data;          // shared write buffer, sized MODES_OUT_BUF_SIZE
     int dataUsed;        // number of bytes of write buffer currently used
     uint64_t lastWrite;  // time of last write to clients
+    uint64_t lastHb;     // time since last heartbeat
     heartbeat_fn send_heartbeat; // function that queues a heartbeat if needed
 };
 
