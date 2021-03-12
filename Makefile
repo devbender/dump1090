@@ -168,4 +168,4 @@ oneoff/decode_comm_b: oneoff/decode_comm_b.o comm_b.o ais_charset.o
 	$(CC) $(CPPFLAGS) $(CFLAGS) -g -o $@ $^ -lm
 
 gitsubmodule:
-  git submodule update --init
+	git submodule update --init
