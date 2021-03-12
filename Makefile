@@ -122,7 +122,7 @@ ifeq ($(LIMESDR), yes)
   LIBS_SDR += $(shell pkg-config --libs LimeSuite)
 endif
 
-all: showconfig dump1090 view1090
+all: showconfig gitsubmodule dump1090 view1090
 
 showconfig:
 	@echo "Building with:" >&2
