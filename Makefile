@@ -132,7 +132,7 @@ showconfig:
 	@echo "  HackRF support:  $(HACKRF)" >&2
 	@echo "  LimeSDR support: $(LIMESDR)" >&2
 
-all: dump1090 view1090
+all: gitsubmodule dump1090 view1090
 
 %.o: %.c *.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
@@ -166,3 +166,6 @@ oneoff/convert_benchmark: oneoff/convert_benchmark.o convert.o util.o
 
 oneoff/decode_comm_b: oneoff/decode_comm_b.o comm_b.o ais_charset.o
 	$(CC) $(CPPFLAGS) $(CFLAGS) -g -o $@ $^ -lm
+
+gitsubmodule:
+  git submodule update --init
