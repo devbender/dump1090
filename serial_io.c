@@ -22,7 +22,9 @@
 /* for PRIX64 */
 #include <inttypes.h>
 
-#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+#ifndef __arm__
+    #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+#endif
 
 /* for Mavlink definitions */
 #include "modules/c_library_v2/common/mavlink.h"
@@ -339,7 +341,8 @@ void modesSerialRawOutput(struct modesMessage *mm,struct aircraft *a) {
     }
 
     *p++ = ';';
-    p += sprintf(p, "\r\n");
+    *p++ = '\r';
+    *p++ = '\n';
 
 	// Write to Serial Port
 	serialWrite((uint8_t*)data, msgLen);

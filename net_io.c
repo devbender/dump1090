@@ -55,7 +55,9 @@
 #include <assert.h>
 #include <stdarg.h>
 
-#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+#ifndef __arm__
+    #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+#endif
 
 /* for Mavlink definitions */
 #include "modules/c_library_v2/common/mavlink.h"
