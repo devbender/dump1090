@@ -339,7 +339,7 @@ void modesSerialRawOutput(struct modesMessage *mm,struct aircraft *a) {
     }
 
     *p++ = ';';
-    *p++ = '\n';
+    p += sprintf(p, "\r\n");
 
 	// Write to Serial Port
 	serialWrite((uint8_t*)data, msgLen);
