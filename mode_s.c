@@ -2161,7 +2161,7 @@ void useModesMessage(struct modesMessage *mm) {
 
         if(Modes.serial.format == SBS_SERIAL)
             modesSerialSBSOutput(mm, a);
-        else 
+        else if(Modes.serial.format == RAW_SERIAL)
             modesSerialRawOutput(mm, a);
     }
 }

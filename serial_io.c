@@ -308,6 +308,11 @@ void modesSerialMavlinkSendAircrafts(void) {
 }
 
 
+//
+//=========================================================================
+//
+// Send msg in Raw format
+//
 void modesSerialRawOutput(struct modesMessage *mm,struct aircraft *a) {
 	
 	// Don't ever forward mlat messages via raw output.
@@ -324,7 +329,8 @@ void modesSerialRawOutput(struct modesMessage *mm,struct aircraft *a) {
         return;
 
     int msgLen = mm->msgbits / 8;
-	char data[msgLen*2 +15], *p = data;
+	char serialBuffer[msgLen*2 + 15], *p = serialBuffer;
+    memset(serialBuffer, '\0', sizeof(serialBuffer));
 
     if (Modes.mlat && mm->timestampMsg) {
         /* timestamp, big-endian */
@@ -340,20 +346,24 @@ void modesSerialRawOutput(struct modesMessage *mm,struct aircraft *a) {
         p += 2;
     }
 
-    *p++ = ';';
-    *p++ = '\r';
-    *p++ = '\n';
+    // Terminating char
+    p += sprintf(p, ";\r\n");
 
 	// Write to Serial Port
-	serialWrite((uint8_t*)data, msgLen);
+	serialWrite((uint8_t*)serialBuffer, strlen(serialBuffer));
 }
 
 
 
+//
+//=========================================================================
+//
+// Send msg in SBS format
+//
 void modesSerialSBSOutput(struct modesMessage *mm,struct aircraft *a) {
 	
-	char data[200], *p = data;
-	memset(data, '\0', sizeof(data));
+	char serialBuffer[200], *p = serialBuffer;
+	memset(serialBuffer, '\0', sizeof(serialBuffer));
 	
     struct timespec now;
     struct tm    stTime_receive, stTime_now;
@@ -565,7 +575,7 @@ void modesSerialSBSOutput(struct modesMessage *mm,struct aircraft *a) {
     p += sprintf(p, "\r\n");
 
 	// Write to Serial Port
-	serialWrite((uint8_t*)data, strlen(data));
+	serialWrite((uint8_t*)serialBuffer, strlen(serialBuffer));
 }
 
 
