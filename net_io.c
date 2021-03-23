@@ -835,9 +835,6 @@ static void modesSendMavlinkOutput(struct modesMessage *mm, struct aircraft *a) 
     mavlink_message_t adsb_message;
     uint8_t adsb_buffer[MAVLINK_MAX_PACKET_LEN];
 
-    uint8_t system_id = 254; // 255 is GCS, high enough to avoid ID collisions
-    uint8_t component_id = MAV_COMP_ID_ADSB; 
-
     uint32_t icao_address = a->addr;
     int32_t lat = 0, lon = 0;
     uint8_t altitude_type = 0;
@@ -937,8 +934,8 @@ static void modesSendMavlinkOutput(struct modesMessage *mm, struct aircraft *a) 
     }
 
     // Pack mavlink message
-    mavlink_msg_adsb_vehicle_pack(system_id,
-                                  component_id,
+    mavlink_msg_adsb_vehicle_pack(Modes.mavlink_system_id,
+                                  MAV_COMP_ID_ADSB,
                                   &adsb_message,
                                   icao_address,
                                   lat,
@@ -973,7 +970,7 @@ static void send_mavlink_heartbeat(struct net_service *service) {
     uint8_t mav_heartbeat_buffer[MAVLINK_MAX_PACKET_LEN];
 
     // Pack mavlink message
-    mavlink_msg_heartbeat_pack(254,
+    mavlink_msg_heartbeat_pack(Modes.mavlink_system_id,
                                MAV_COMP_ID_ADSB,
                                &mav_heartbeat_message,
                                MAV_TYPE_ADSB,

@@ -26,15 +26,21 @@ typedef enum {
     SBS_SERIAL
 } serial_format_t;
 
+typedef struct {
+    uint8_t sysID;
+    uint8_t compID;
+} mavlink_opt_t;
+
 struct serial_writer {
     int     enable;
     char    *port;
     int     baud;
 
-    uint64_t    lastSend;
-    uint64_t    interval;
+    uint64_t lastSend;
+    uint64_t interval;
 
-    serial_format_t     format;    
+    mavlink_opt_t   mavlink;
+    serial_format_t format;    
 };
 
 int openSerial(const char* port);

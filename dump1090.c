@@ -120,11 +120,13 @@ static void modesInitConfig(void) {
     Modes.mode_ac_auto            = 1;
 
     Modes.serial.enable           = 0;
-    Modes.serial.port             = "/dev/ttyUSB0";
-    Modes.serial.baud             = 115200;
+    Modes.serial.port             = "/dev/ttyS0";
+    Modes.serial.baud             = 57600;
     Modes.serial.format           = MAVLINK_SERIAL;
     Modes.serial.interval         = 1000;
-
+    
+    Modes.mavlink_system_id       = 254;
+    
     sdrInitConfig();
 }
 //
@@ -313,7 +315,8 @@ static void showHelp(void)
 "--serial-port <port>     Output to Serial Port (default: /dev/ttyUSB0)\n"
 "--serial-baud <baud>     Serial Port Baud (default: 115200)\n"
 "--serial-format          Serial Output Format 0:Mavlink 1:Raw 2:SBS (default: 0)\n"
-"--forward-mlat           Allow forwarding of received mlat results to output ports\n"
+"--mavlink-sys-id <n>     Especify mavlink system ID (default: 254)\n"
+"--forward-mlat           Allow forwarding of received mlat results tom output ports\n"
 "--lat <latitude>         Reference/receiver latitude for surface posn (opt)\n"
 "--lon <longitude>        Reference/receiver longitude for surface posn (opt)\n"
 "--max-range <distance>   Absolute maximum range for position decoding (in nm, default: 300)\n"
@@ -598,6 +601,8 @@ int main(int argc, char **argv) {
             Modes.serial.enable = 1;
             Modes.serial.format = atoi(argv[++j]);
 
+        } else if (!strcmp(argv[j],"--mavlink-sys-id") && more) {
+            Modes.mavlink_system_id = atoi(argv[++j]);
         
         } else if (!strcmp(argv[j],"--forward-mlat")) {
             Modes.forward_mlat = 1;

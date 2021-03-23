@@ -326,6 +326,7 @@ struct _Modes {                             // Internal state
     int   net;                       // Enable networking
     int   net_only;                  // Enable just networking
     int   mavlink;                   // Mavlink flag for continous heartbeats
+    uint8_t mavlink_system_id;       // Mavlink system id
     uint64_t net_heartbeat_interval; // TCP heartbeat interval (milliseconds)
     int   net_output_flush_size;     // Minimum Size of output data
     uint64_t net_output_flush_interval; // Maximum interval (in milliseconds) between outputwrites
