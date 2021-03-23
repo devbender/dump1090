@@ -26,11 +26,6 @@ typedef enum {
     SBS_SERIAL
 } serial_format_t;
 
-typedef struct {
-    uint8_t sysID;
-    uint8_t compID;
-} mavlink_opt_t;
-
 struct serial_writer {
     int     enable;
     char    *port;
@@ -39,7 +34,6 @@ struct serial_writer {
     uint64_t lastSend;
     uint64_t interval;
 
-    mavlink_opt_t   mavlink;
     serial_format_t format;    
 };
 
