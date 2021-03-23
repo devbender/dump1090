@@ -42,7 +42,7 @@ int initSerial(int baud);
 int closeSerial(const char* port);
 int serialWrite(uint8_t *buf, unsigned len);
 
-void modesInitSerial(void);
+void modesInitSerial(const char* port, int baud, int format);
 void modesCloseSerial(void);
 
 void modesSerialMavlinkOutput(struct aircraft*);

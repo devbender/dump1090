@@ -40,9 +40,7 @@ int serialOpen = 0;
 int openSerial(const char* port) {
     // Open serial port
 	// O_RDWR - Read and write
-	// O_NOCTTY - Ignore special chars like CTRL-C
-
-	printf("Opening serial port: %s >> ", port);
+	// O_NOCTTY - Ignore special chars like CTRL-C	
 
 	fd = open(port, O_RDWR | O_NOCTTY | O_NDELAY);
 
@@ -75,7 +73,7 @@ int closeSerial(const char* port) {
 	int result = close(fd);
 
 	if (result) fprintf(stderr,"ERROR (%i)\n", result );
-	else printf("[OK]");
+	else printf("[OK]\n");
 
 	serialOpen = 0;
 
@@ -232,17 +230,31 @@ int serialWrite(uint8_t *buf, unsigned len) {
 //
 // Init
 //
-void modesInitSerial(void) {
-    
+void modesInitSerial(const char *port, int baud, int format) {
+
     // Open Port
-    if( openSerial(Modes.serial.port) == -1) {
-        printf("serial: error opening port.\n");
+    printf("Opening serial port: %s [%i] >> ", port, baud);    
+    
+    if( openSerial(port) == -1) {
+        printf("Serial: error opening port.\n");
         exit(1);
     }
 
-    // Init
+    // Init port
     if(serialOpen) {
-        initSerial(Modes.serial.baud);
+        initSerial(baud);
+    }
+
+    // Formar confirmation
+    if(format == MAVLINK_SERIAL)  
+        printf("Serial out format: MAVLINK\n");
+    else if(format == RAW_SERIAL) 
+        printf("Serial out format: RAW\n");
+    else if(format == SBS_SERIAL) 
+        printf("Serial out format: SBS\n");
+    else {
+        printf("Unknown serial out format!\n");
+        exit(1);
     }
 }
 

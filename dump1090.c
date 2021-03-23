@@ -695,7 +695,7 @@ int main(int argc, char **argv) {
     }
 
     if (Modes.serial.enable) {
-        modesInitSerial();
+        modesInitSerial(Modes.serial.port, Modes.serial.baud, Modes.serial.format);
     }
 
     // init stats:
