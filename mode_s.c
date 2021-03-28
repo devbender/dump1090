@@ -2157,7 +2157,7 @@ void useModesMessage(struct modesMessage *mm) {
     }
 
     // Feed serial output in specified format
-    if (Modes.serial.enable) {
+    if (Modes.serial.enabled) {
 
         if(Modes.serial.format == SBS_SERIAL)
             modesSerialSBSOutput(mm, a);

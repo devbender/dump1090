@@ -119,7 +119,7 @@ static void modesInitConfig(void) {
     Modes.maxRange                = 1852 * 300; // 300NM default max range
     Modes.mode_ac_auto            = 1;
 
-    Modes.serial.enable           = 0;
+    Modes.serial.enabled          = 0;
     Modes.serial.port             = "/dev/ttyS0";
     Modes.serial.baud             = 57600;
     Modes.serial.format           = MAVLINK_SERIAL;
@@ -378,7 +378,7 @@ static void backgroundTasks(void) {
     }
 
     // Feed Mavlink serial output periodically as opposed to at message reception
-    if(Modes.serial.enable && Modes.serial.format == MAVLINK_SERIAL) {
+    if(Modes.serial.enabled && Modes.serial.format == MAVLINK_SERIAL) {
 
         if(Modes.serial.lastSend + Modes.serial.interval <= now) {
             Modes.serial.lastSend = now;
@@ -590,15 +590,15 @@ int main(int argc, char **argv) {
             Modes.net_verbatim = 1;
 
         } else if (!strcmp(argv[j],"--serial")) {
-            Modes.serial.enable = 1;
+            Modes.serial.enabled = 1;
         } else if (!strcmp(argv[j],"--serial-port") && more) {
-            Modes.serial.enable = 1;
+            Modes.serial.enabled = 1;
             Modes.serial.port = strdup(argv[++j]);
         } else if (!strcmp(argv[j],"--serial-baud") && more) {
-            Modes.serial.enable = 1;
+            Modes.serial.enabled = 1;
             Modes.serial.baud = atoi(argv[++j]);
         } else if (!strcmp(argv[j],"--serial-format") && more) {
-            Modes.serial.enable = 1;
+            Modes.serial.enabled = 1;
             Modes.serial.format = atoi(argv[++j]);
 
         } else if (!strcmp(argv[j],"--mavlink-sys-id") && more) {
@@ -694,7 +694,7 @@ int main(int argc, char **argv) {
         modesInitNet();
     }
 
-    if (Modes.serial.enable) {
+    if (Modes.serial.enabled) {
         modesInitSerial(Modes.serial.port, Modes.serial.baud, Modes.serial.format);
     }
 
@@ -786,8 +786,8 @@ int main(int argc, char **argv) {
     sdrClose();
     fifo_destroy();
 
-    if (Modes.serial.enable) {
-        modesCloseSerial();
+    if (Modes.serial.enabled) {
+        modesCloseSerial(Modes.serial.port);
     }
 
     if (Modes.exit == 1) {

@@ -38,10 +38,10 @@ int serialOpen = 0;
 // Open serial port
 //
 int openSerial(const char* port) {
+    
     // Open serial port
 	// O_RDWR - Read and write
-	// O_NOCTTY - Ignore special chars like CTRL-C	
-
+	// O_NOCTTY - Ignore special chars like CTRL-C
 	fd = open(port, O_RDWR | O_NOCTTY | O_NDELAY);
 
 	// Check for Errors
@@ -64,18 +64,17 @@ int openSerial(const char* port) {
 //
 // Close serial port
 //
-int closeSerial(const char* port) {
-
-    if(!serialOpen) return 0;
-    
-    printf("Closing serial port: %s >> ", port);
+int closeSerial() {
 
 	int result = close(fd);
 
-	if (result) fprintf(stderr,"ERROR (%i)\n", result );
-	else printf("[OK]\n");
-
-	serialOpen = 0;
+	if (result) {
+        fprintf(stderr,"ERROR (%i)\n", result );
+    }
+	else {
+        printf("[OK]\n");
+	    serialOpen = 0;
+    }
 
 	printf("\n");
 
@@ -212,8 +211,6 @@ int initSerial(int baud) {
 // Write to serial port
 //
 int serialWrite(uint8_t *buf, unsigned len) {
-    
-	//printf("WRITING >> %i bytes\n", len);
 
     // Write packet via serial link
 	const int bytesWritten = (int)write(fd, buf, len);
@@ -253,7 +250,7 @@ void modesInitSerial(const char *port, int baud, int format) {
     else if(format == SBS_SERIAL) 
         printf("Serial out format: SBS\n");
     else {
-        printf("Unknown serial out format!\n");
+        printf("Serial: error unknown serial format!\n");
         exit(1);
     }
 }
@@ -264,8 +261,15 @@ void modesInitSerial(const char *port, int baud, int format) {
 //
 // Close
 //
-void modesCloseSerial(void) {
-	closeSerial(Modes.serial.port);
+void modesCloseSerial(const char *port) {
+    
+    // If serial not open return
+    if(!serialOpen) {
+        printf("Serial: error port not open!\n");
+    } else {
+        printf("Closing serial port: %s >> ", port);	
+        closeSerial(port);
+    }
 }
 
 
@@ -283,10 +287,7 @@ void modesSerialMavlinkSendAircrafts(void) {
 		// We require a tracked/reliable aircraft for serial output
 		if (!a || !a->reliable) {
             continue;
-        }
-
-		// Output serial in specified format
-		else {
+        } else {
 			modesSerialMavlinkOutput(a);
 		}
 	}	
@@ -452,7 +453,7 @@ void modesSerialMavlinkOutput(struct aircraft *a) {
     uint16_t len = mavlink_msg_to_send_buffer(adsb_buffer, &adsb_message);
 
 	// Write to Serial Port
-	serialWrite(adsb_buffer, len);
+	serialWrite( adsb_buffer, len );
 }
 
 
@@ -495,11 +496,11 @@ void modesSerialRawOutput(struct modesMessage *mm,struct aircraft *a) {
         p += 2;
     }
 
-    // Terminating char
+    // Terminating chars
     p += sprintf(p, ";\r\n");
 
 	// Write to Serial Port
-	serialWrite((uint8_t*)serialBuffer, strlen(serialBuffer));
+	serialWrite( (uint8_t*)serialBuffer, strlen(serialBuffer) );
 }
 
 
@@ -723,5 +724,5 @@ void modesSerialSBSOutput(struct modesMessage *mm,struct aircraft *a) {
     p += sprintf(p, "\r\n");
 
 	// Write to Serial Port
-	serialWrite((uint8_t*)serialBuffer, strlen(serialBuffer));
+	serialWrite( (uint8_t*)serialBuffer, strlen(serialBuffer) );
 }

@@ -27,7 +27,7 @@ typedef enum {
 } serial_format_t;
 
 struct serial_writer {
-    int     enable;
+    int     enabled;
     char    *port;
     int     baud;
 
@@ -39,11 +39,11 @@ struct serial_writer {
 
 int openSerial(const char* port);
 int initSerial(int baud);
-int closeSerial(const char* port);
+int closeSerial();
 int serialWrite(uint8_t *buf, unsigned len);
 
 void modesInitSerial(const char* port, int baud, int format);
-void modesCloseSerial(void);
+void modesCloseSerial(const char *port);
 
 void modesSerialMavlinkOutput(struct aircraft*);
 void modesSerialRawOutput(struct modesMessage*, struct aircraft*);
